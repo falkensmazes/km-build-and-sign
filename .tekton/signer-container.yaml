@@ -59,8 +59,9 @@ spec:
         set -x
         ## Subscription manager and needed packages when using ubi8
         subscription-manager register --org="$ORG_ID" --activationkey="$KEY_ID"
-        INSTALL_PKGS="clang unzip cmake zlib-devel openssl-devel openssl openssl-pkcs11 \
-                      kernel-devel unzip less libcurl-devel git p11-kit-devel json-c-devel" && \
+        #INSTALL_PKGS="clang unzip cmake zlib-devel openssl-devel openssl openssl-pkcs11 \
+        #              kernel-devel less libcurl-devel git p11-kit-devel json-c-devel" && \
+        INSTALL_PKGS="unzip openssl openssl-pkcs11 kernel-devel p11-kit-devel git"
         yum install -y --setopt=tsflags=nodocs $INSTALL_PKGS && \
         rpm -V $INSTALL_PKGS && \
         yum -y clean all
@@ -80,7 +81,7 @@ spec:
         #cp aws_kms_pkcs11.so /usr/lib64/pkcs11/
         P11_LIB_PATH="/usr/lib64/pkcs11/aws_kms_pkcs11.so"
         P11_LIB_URL="https://github.com/JackOfMostTrades/aws-kms-pkcs11/releases/download/v0.0.11/aws_kms_pkcs11.x86_64.so"
-        curl -o -L ${P11_LIB_PATH} ${P11_LIB_URL}
+        curl -o ${P11_LIB_PATH} -L ${P11_LIB_URL}
         # Install AWS CLI (needed?)
         #curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && \
         #unzip awscliv2.zip && \
