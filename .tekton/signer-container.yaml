@@ -84,6 +84,7 @@ spec:
         #./aws/install
 
         # Copy config files from source
+        mkdir -p /etc/aws-kms-pkcs11
         cp /workspace/buildmodules/source/openssl-pkcs11.conf /etc/aws-kms-pkcs11/
         cp /workspace/buildmodules/source/config.json /etc/aws-kms-pkcs11/
         cp /workspace/buildmodules/source/x509.genkey /etc/aws-kms-pkcs11/
