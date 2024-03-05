@@ -65,20 +65,21 @@ spec:
         rpm -V $INSTALL_PKGS && \
         yum -y clean all
         # Install AWS SDK C++ 
-        curl -o ~/aws-sdk-cpp.tar.gz -L https://github.com/aws/aws-sdk-cpp/archive/1.9.332.tar.gz && \
-        mkdir ~/aws-sdk-cpp-src && \
-        tar -C ~/aws-sdk-cpp-src --strip-components=1 -zxf ~/aws-sdk-cpp.tar.gz && \
-        cd ~/aws-sdk-cpp-src && ./prefetch_crt_dependency.sh && \
-        mkdir ~/aws-sdk-cpp-src/sdk_build && \
-        cd ~/aws-sdk-cpp-src/sdk_build && \
-        cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_ONLY="kms;acm-pca" -DENABLE_TESTING=OFF -DCMAKE_INSTALL_PREFIX=$HOME/aws-sdk-cpp -DBUILD_SHARED_LIBS=OFF && \
-        make && make install 
+        #curl -o ~/aws-sdk-cpp.tar.gz -L https://github.com/aws/aws-sdk-cpp/archive/1.9.332.tar.gz && \
+        #mkdir ~/aws-sdk-cpp-src && \
+        #tar -C ~/aws-sdk-cpp-src --strip-components=1 -zxf ~/aws-sdk-cpp.tar.gz && \
+        #cd ~/aws-sdk-cpp-src && ./prefetch_crt_dependency.sh && \
+        #mkdir ~/aws-sdk-cpp-src/sdk_build && \
+        #cd ~/aws-sdk-cpp-src/sdk_build && \
+        #cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_ONLY="kms;acm-pca" -DENABLE_TESTING=OFF -DCMAKE_INSTALL_PREFIX=$HOME/aws-sdk-cpp -DBUILD_SHARED_LIBS=OFF && \
+        #make && make install 
         # Clone PKCS11 implementation to use AWS KMS as backend
-        git clone https://github.com/JackOfMostTrades/aws-kms-pkcs11.git && \
-        cd aws-kms-pkcs11 && \
-        AWS_SDK_PATH=~/aws-sdk-cpp make && \
-        cp aws_kms_pkcs11.so /usr/lib64/pkcs11/
-
+        #git clone https://github.com/JackOfMostTrades/aws-kms-pkcs11.git && \
+        #cd aws-kms-pkcs11 && \
+        #AWS_SDK_PATH=~/aws-sdk-cpp make && \
+        #cp aws_kms_pkcs11.so /usr/lib64/pkcs11/
+        curl -o /usr/lib64/pkcs11/aws_kms_pkcs11.x86_64.so \
+        https://github.com/JackOfMostTrades/aws-kms-pkcs11/releases/download/v0.0.11/aws_kms_pkcs11.x86_64.so
         # Install AWS CLI (needed?)
         #curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && \
         #unzip awscliv2.zip && \
@@ -89,7 +90,7 @@ spec:
         cp /workspace/buildmodules/source/openssl-pkcs11.conf /etc/aws-kms-pkcs11/
         cp /workspace/buildmodules/source/config.json /etc/aws-kms-pkcs11/
         cp /workspace/buildmodules/source/x509.genkey /etc/aws-kms-pkcs11/
-
+        ls -l /etc/aws-kms-pkcs11/
 
     
 
