@@ -59,29 +59,30 @@ spec:
         set -x
         ## Subscription manager and needed packages when using ubi8
         subscription-manager register --org="$ORG_ID" --activationkey="$KEY_ID"
-        #INSTALL_PKGS="clang unzip cmake zlib-devel openssl-devel openssl openssl-pkcs11 \
-        #              kernel-devel less libcurl-devel git p11-kit-devel json-c-devel" && \
-        INSTALL_PKGS="unzip openssl openssl-pkcs11 kernel-devel p11-kit-devel git"
+        INSTALL_PKGS="clang unzip cmake zlib-devel openssl-devel openssl openssl-pkcs11 \
+                      kernel-devel less libcurl-devel git p11-kit-devel json-c-devel" && \
+        #INSTALL_PKGS="unzip openssl openssl-pkcs11 kernel-devel p11-kit-devel git"
         yum install -y --setopt=tsflags=nodocs $INSTALL_PKGS && \
         rpm -V $INSTALL_PKGS && \
         yum -y clean all
         # Install AWS SDK C++ 
-        #curl -o ~/aws-sdk-cpp.tar.gz -L https://github.com/aws/aws-sdk-cpp/archive/1.9.332.tar.gz && \
-        #mkdir ~/aws-sdk-cpp-src && \
-        #tar -C ~/aws-sdk-cpp-src --strip-components=1 -zxf ~/aws-sdk-cpp.tar.gz && \
-        #cd ~/aws-sdk-cpp-src && ./prefetch_crt_dependency.sh && \
-        #mkdir ~/aws-sdk-cpp-src/sdk_build && \
-        #cd ~/aws-sdk-cpp-src/sdk_build && \
-        #cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_ONLY="kms;acm-pca" -DENABLE_TESTING=OFF -DCMAKE_INSTALL_PREFIX=$HOME/aws-sdk-cpp -DBUILD_SHARED_LIBS=OFF && \
-        #make && make install 
+        curl -o ~/aws-sdk-cpp.tar.gz -L https://github.com/aws/aws-sdk-cpp/archive/1.9.332.tar.gz && \
+        mkdir ~/aws-sdk-cpp-src && \
+        tar -C ~/aws-sdk-cpp-src --strip-components=1 -zxf ~/aws-sdk-cpp.tar.gz && \
+        cd ~/aws-sdk-cpp-src && ./prefetch_crt_dependency.sh && \
+        mkdir ~/aws-sdk-cpp-src/sdk_build && \
+        cd ~/aws-sdk-cpp-src/sdk_build && \
+        cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_ONLY="kms;acm-pca" -DENABLE_TESTING=OFF -DCMAKE_INSTALL_PREFIX=$HOME/aws-sdk-cpp -DBUILD_SHARED_LIBS=OFF && \
+        make && make install 
         # Clone PKCS11 implementation to use AWS KMS as backend
-        #git clone https://github.com/JackOfMostTrades/aws-kms-pkcs11.git && \
-        #cd aws-kms-pkcs11 && \
-        #AWS_SDK_PATH=~/aws-sdk-cpp make && \
-        #cp aws_kms_pkcs11.so /usr/lib64/pkcs11/
-        P11_LIB_PATH="/usr/lib64/pkcs11/aws_kms_pkcs11.so"
-        P11_LIB_URL="https://github.com/JackOfMostTrades/aws-kms-pkcs11/releases/download/v0.0.11/aws_kms_pkcs11.x86_64.so"
-        curl -o ${P11_LIB_PATH} -L ${P11_LIB_URL}
+        git clone https://github.com/JackOfMostTrades/aws-kms-pkcs11.git && \
+        cd aws-kms-pkcs11 && \
+        AWS_SDK_PATH=~/aws-sdk-cpp make && \
+        cp aws_kms_pkcs11.so /usr/lib64/pkcs11/
+        ls -l /usr/lib64/pkcs11/
+        #P11_LIB_PATH="/usr/lib64/pkcs11/aws_kms_pkcs11.so"
+        #P11_LIB_URL="https://github.com/JackOfMostTrades/aws-kms-pkcs11/releases/download/v0.0.11/aws_kms_pkcs11.x86_64.so"
+        #curl -o ${P11_LIB_PATH} -L ${P11_LIB_URL}
         # Install AWS CLI (needed?)
         #curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && \
         #unzip awscliv2.zip && \
@@ -92,8 +93,6 @@ spec:
         cp /workspace/buildmodules/source/openssl-pkcs11.conf /etc/aws-kms-pkcs11/
         cp /workspace/buildmodules/source/config.json /etc/aws-kms-pkcs11/
         cp /workspace/buildmodules/source/x509.genkey /etc/aws-kms-pkcs11/
-        ls -l /etc/aws-kms-pkcs11/
-
     
 
         find /usr/src/kernels/ -type f -name "sign-file" -exec cp {} /bin/sign-file \; 
