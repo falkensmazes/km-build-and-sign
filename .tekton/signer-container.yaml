@@ -38,7 +38,6 @@ spec:
       image: $(params.IMAGE_URL)
       script: |
         #!/usr/bin/env bash
-        set -x
         mkdir /workspace/buildmodules/files
         cp -rp /home/builder/$BUILT_PATH/*.ko /workspace/buildmodules/files
   
@@ -56,9 +55,9 @@ spec:
       image: registry.access.redhat.com/ubi8/ubi
       script: |
         #!/usr/bin/env bash
-        set -x
         ## Subscription manager and needed packages when using ubi8
         subscription-manager register --org="$ORG_ID" --activationkey="$KEY_ID"
+        yum -y update
         INSTALL_PKGS="clang unzip cmake zlib-devel openssl-devel openssl openssl-pkcs11 \
                       kernel-devel less libcurl-devel git p11-kit-devel json-c-devel" && \
         #INSTALL_PKGS="unzip openssl openssl-pkcs11 kernel-devel p11-kit-devel git"
@@ -79,22 +78,25 @@ spec:
         cd aws-kms-pkcs11 && \
         AWS_SDK_PATH=~/aws-sdk-cpp make && \
         cp aws_kms_pkcs11.so /usr/lib64/pkcs11/
-        ls -l /usr/lib64/pkcs11/
+        
         #P11_LIB_PATH="/usr/lib64/pkcs11/aws_kms_pkcs11.so"
         #P11_LIB_URL="https://github.com/JackOfMostTrades/aws-kms-pkcs11/releases/download/v0.0.11/aws_kms_pkcs11.x86_64.so"
         #curl -o ${P11_LIB_PATH} -L ${P11_LIB_URL}
         # Install AWS CLI (needed?)
-        curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && \
-        unzip awscliv2.zip && \
-        ./aws/install 
-        aws kms list-keys --region=eu-west-3 --no-cli-pager
+        #curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && \
+        #unzip awscliv2.zip && \
+        #./aws/install 
+        #aws kms list-keys --region=eu-west-3 --no-cli-pager
 
         # Copy config files from source
         mkdir -p /etc/aws-kms-pkcs11
         cp /workspace/buildmodules/source/openssl-pkcs11.conf /etc/aws-kms-pkcs11/
         cp /workspace/buildmodules/source/config.json /etc/aws-kms-pkcs11/
         cp /workspace/buildmodules/source/x509.genkey /etc/aws-kms-pkcs11/
-    
+        cat /etc/aws-kms-pkcs11/openssl-pkcs11.conf
+        cat /etc/aws-kms-pkcs11/config.json
+
+        
 
         find /usr/src/kernels/ -type f -name "sign-file" -exec cp {} /bin/sign-file \; 
         export KMS_TOKEN=$(echo $AWS_KMS_KEY_ID | cut -c1-32)
