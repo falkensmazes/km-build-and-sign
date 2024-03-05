@@ -87,7 +87,7 @@ spec:
         curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && \
         unzip awscliv2.zip && \
         ./aws/install 
-        aws kms list-keys --no-cli-pager
+        aws kms list-keys --region=eu-west-3 --no-cli-pager
 
         # Copy config files from source
         mkdir -p /etc/aws-kms-pkcs11
