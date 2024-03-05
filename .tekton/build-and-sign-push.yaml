@@ -384,6 +384,34 @@ spec:
         operator: in
         values:
         - "false"
+
+    - name: signer-container 
+      params:
+      - name: IMAGE_URL
+        value: $(tasks.build-container.results.IMAGE_URL)
+      - name: IMAGE_DIGEST
+        value: $(tasks.build-container.results.IMAGE_DIGEST)
+      runAfter:
+      - build-container
+      taskRef:
+        params:
+          - name: url
+            value: https://github.com/falkensmazes/km-build-and-sign
+          - name: revision
+            value: main
+          - name: pathInRepo
+            value: .tekton/signer-container.yaml            
+        resolver: git 
+      when:
+      - input: $(params.skip-checks)
+        operator: in
+        values:
+        - "false"
+      workspaces:
+      - name: buildmodules
+        workspace: workspace
+ 
+
     workspaces:
     - name: workspace
     - name: git-auth

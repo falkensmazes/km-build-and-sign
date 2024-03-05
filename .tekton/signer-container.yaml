@@ -1,0 +1,188 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: signer-container
+spec:
+  params:
+    - name: AWS_AUTH 
+      type: string
+      default: "awsenriqueauth"
+    - name: MY_KMS_ID
+      type: string
+      default: "kms-test-key"
+    - name: IMAGE_URL
+    - name: IMAGE_DIGEST
+    - name: DRIVER_NAME
+      type: string
+      default: "kmm-kmod"
+    - name: DRIVER_VERSION
+      type: string
+      default: "535.104.105"
+    - name: quay-credentials
+      type: string
+      default: "quay-enrique-config-json"
+    - name: built-path
+      type: string
+      #default: "open-gpu-kernel-modules/kernel-open"
+      default: "kmm-kmod"
+    - name: rh-activation-key
+      type: string
+      default: "rh-activation-key"
+
+  workspaces:
+    - name: buildmodules
+
+
+  steps:
+    - name: copy-files
+      image: $(params.IMAGE_URL)
+      script: |
+        #!/usr/bin/env bash
+        set -x
+        mkdir /workspace/buildmodules/files
+        cp -rp /home/builder/$BUILT_PATH/*.ko /workspace/buildmodules/files
+  
+      env:
+        - name: IMAGE_URL
+          value: $(params.IMAGE_URL)
+        - name: BUILT_PATH
+          value: $(params.built-path)
+
+     
+  
+    - name: signer-container
+      # Image based on ubi8 but with aws-sdk-cpp installed and pkcs11 lib compiled
+      #image: quay.io/ebelarte/aws-kms-pkcs11-signer:ubi8-1.1
+      image: registry.access.redhat.com/ubi8/ubi
+      script: |
+        #!/usr/bin/env bash
+        ## Subscription manager and needed packages when using ubi8
+        subscription-manager register --org="$ORG_ID" --activationkey="$KEY_ID"
+        INSTALL_PKGS="clang unzip cmake zlib-devel openssl-devel openssl openssl-pkcs11 \
+                      kernel-devel unzip less libcurl-devel git p11-kit-devel json-c-devel" && \
+        yum install -y --setopt=tsflags=nodocs $INSTALL_PKGS && \
+        rpm -V $INSTALL_PKGS && \
+        yum -y clean all
+        # Install AWS SDK C++ 
+        curl -o ~/aws-sdk-cpp.tar.gz -L https://github.com/aws/aws-sdk-cpp/archive/1.9.332.tar.gz && \
+        mkdir ~/aws-sdk-cpp-src && \
+        tar -C ~/aws-sdk-cpp-src --strip-components=1 -zxf ~/aws-sdk-cpp.tar.gz && \
+        cd ~/aws-sdk-cpp-src && ./prefetch_crt_dependency.sh && \
+        mkdir ~/aws-sdk-cpp-src/sdk_build && \
+        cd ~/aws-sdk-cpp-src/sdk_build && \
+        cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_ONLY="kms;acm-pca" -DENABLE_TESTING=OFF -DCMAKE_INSTALL_PREFIX=$HOME/aws-sdk-cpp -DBUILD_SHARED_LIBS=OFF && \
+        make && make install 
+        # Clone PKCS11 implementation to use AWS KMS as backend
+        git clone https://github.com/JackOfMostTrades/aws-kms-pkcs11.git && \
+        cd aws-kms-pkcs11 && \
+        AWS_SDK_PATH=~/aws-sdk-cpp make && \
+        cp aws_kms_pkcs11.so /usr/lib64/pkcs11/
+
+        # Install AWS CLI (needed?)
+        #curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && \
+        #unzip awscliv2.zip && \
+        #./aws/install
+
+        # Copy config files from source
+        cp /workspace/buildmodules/source/openssl-pkcs11.conf /etc/aws-kms-pkcs11/
+        cp /workspace/buildmodules/source/config.json /etc/aws-kms-pkcs11/
+        cp /workspace/buildmodules/source/x509.genkey /etc/aws-kms-pkcs11/
+
+
+    
+
+        find /usr/src/kernels/ -type f -name "sign-file" -exec cp {} /bin/sign-file \; 
+        #echo "AWS_KMS_KEY_ID:  $AWS_KMS_KEY_ID"
+        export KMS_TOKEN=$(echo $AWS_KMS_KEY_ID | cut -c1-32)
+        
+        # Copy config files from source
+        cp /workspace/buildmodules/source/openssl-pkcs11.conf /etc/aws-kms-pkcs11/
+        cp /workspace/buildmodules/source/config.json /etc/aws-kms-pkcs11/
+        cp /workspace/buildmodules/source/x509.genkey /etc/aws-kms-pkcs11/
+
+
+        # Configure PKCS11 
+        # Add pkcs11 configuration to openssl.cnf
+        sed  -i '1i openssl_conf = openssl_init' /etc/pki/tls/openssl.cnf 
+        cat /etc/aws-kms-pkcs11/openssl-pkcs11.conf >> /etc/pki/tls/openssl.cnf
+        # Set AWS KMS Token ID from variable
+        sed -i "s/MY_KMS_ID/$AWS_KMS_KEY_ID/g" /etc/aws-kms-pkcs11/config.json
+        # Set the module path
+        export PKCS11_MODULE_PATH=/usr/lib64/pkcs11/aws_kms_pkcs11.so
+        # Create the public x509 certificate for later signing process
+        openssl req -config /etc/aws-kms-pkcs11/x509.genkey -x509 -key "pkcs11:model=0;manufacturer=aws_kms;serial=0;token=$KMS_TOKEN" -keyform engine -engine pkcs11 -out /etc/aws-kms-pkcs11/mycert.pem -days 36500
+        # Binary to /usr/src/kernels/x.y.z/scripts/sign-file        
+        sign_file="/bin/sign-file"
+        # Loop through each .ko file in the directory
+        directory="/workspace/buildmodules/files"
+        for file in "$directory"/*.ko; do
+            #Check if there are matching files
+            if [ -e "$file" ]; then
+            #Sign each module file
+            signedfile="$directory/$(basename ${file%.*})-signed.ko"
+            "$sign_file" sha256 "pkcs11:model=0;manufacturer=aws_kms;serial=0;token=$KMS_TOKEN" /etc/aws-kms-pkcs11/mycert.pem "$file" "$signedfile"
+              else
+            echo "No .ko files found in the directory"
+            exit 1
+                      fi
+            done
+             
+
+      env:
+        - name: IMAGE_URL
+          value: $(params.IMAGE_URL)
+        - name: IMAGE_DIGEST
+          value: $(params.IMAGE_DIGEST)
+        - name: SOURCE_PATH
+          value: $(workspaces.buildmodules.path)
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: $(params.AWS_AUTH)
+              key: "AWS_ACCESS_KEY_ID"
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: $(params.AWS_AUTH)
+              key: "AWS_SECRET_ACCESS_KEY"
+        - name: AWS_KMS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: $(params.MY_KMS_ID)
+              key: "AWS_KMS_KEY_ID"
+        - name: ORG_ID
+          valueFrom:
+            secretKeyRef:
+              name: $(params.rh-activation-key)
+              key: "ORG_ID"
+        - name: KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: $(params.rh-activation-key)
+              key: "KEY_ID"
+
+    - name: create-signedfiles-image
+      image: gcr.io/kaniko-project/executor:debug  
+      script: |
+        cd /workspace/buildmodules/files
+        echo "FROM registry.access.redhat.com/ubi8/ubi-minimal:latest" > /workspace/buildmodules/files/Dockerfile
+        echo "WORKDIR /drivers" >> /workspace/buildmodules/files/Dockerfile
+        echo "COPY . /drivers" >> /workspace/buildmodules/files/Dockerfile
+        echo $QUAY_CONFIG_JSON > /kaniko/.docker/config.json
+        /kaniko/executor \
+        --context "$(pwd)" \
+        --dockerfile "$(pwd)/Dockerfile" \
+        --destination "quay.io/ebelarte/rhtap-bundles:$DRIVER_NAME-$DRIVER_VERSION" \
+        --cleanup
+
+      env:
+        - name: DRIVER_NAME
+          value: $(params.DRIVER_NAME)                
+        - name: DRIVER_VERSION
+          value: $(params.DRIVER_VERSION)
+        - name: QUAY_CONFIG_JSON
+          valueFrom:
+            secretKeyRef:
+              name: $(params.quay-credentials)
+              key: "config.json"
+
