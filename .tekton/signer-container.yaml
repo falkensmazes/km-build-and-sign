@@ -84,9 +84,10 @@ spec:
         #P11_LIB_URL="https://github.com/JackOfMostTrades/aws-kms-pkcs11/releases/download/v0.0.11/aws_kms_pkcs11.x86_64.so"
         #curl -o ${P11_LIB_PATH} -L ${P11_LIB_URL}
         # Install AWS CLI (needed?)
-        #curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && \
-        #unzip awscliv2.zip && \
-        #./aws/install
+        curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && \
+        unzip awscliv2.zip && \
+        ./aws/install 
+        aws kms list-keys --no-cli-pager
 
         # Copy config files from source
         mkdir -p /etc/aws-kms-pkcs11
@@ -98,11 +99,6 @@ spec:
         find /usr/src/kernels/ -type f -name "sign-file" -exec cp {} /bin/sign-file \; 
         export KMS_TOKEN=$(echo $AWS_KMS_KEY_ID | cut -c1-32)
         
-        # Copy config files from source
-        cp /workspace/buildmodules/source/openssl-pkcs11.conf /etc/aws-kms-pkcs11/
-        cp /workspace/buildmodules/source/config.json /etc/aws-kms-pkcs11/
-        cp /workspace/buildmodules/source/x509.genkey /etc/aws-kms-pkcs11/
-
 
         # Configure PKCS11 
         # Add pkcs11 configuration to openssl.cnf
