@@ -78,7 +78,7 @@ spec:
         #cd aws-kms-pkcs11 && \
         #AWS_SDK_PATH=~/aws-sdk-cpp make && \
         #cp aws_kms_pkcs11.so /usr/lib64/pkcs11/
-        curl -o /usr/lib64/pkcs11/aws_kms_pkcs11.x86_64.so \
+        curl -o /usr/lib64/pkcs11/aws_kms_pkcs11.so \
         https://github.com/JackOfMostTrades/aws-kms-pkcs11/releases/download/v0.0.11/aws_kms_pkcs11.x86_64.so
         # Install AWS CLI (needed?)
         #curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && \
