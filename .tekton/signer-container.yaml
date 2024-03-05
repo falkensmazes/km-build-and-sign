@@ -56,6 +56,7 @@ spec:
       image: registry.access.redhat.com/ubi8/ubi
       script: |
         #!/usr/bin/env bash
+        set -x
         ## Subscription manager and needed packages when using ubi8
         subscription-manager register --org="$ORG_ID" --activationkey="$KEY_ID"
         INSTALL_PKGS="clang unzip cmake zlib-devel openssl-devel openssl openssl-pkcs11 \
@@ -93,7 +94,6 @@ spec:
     
 
         find /usr/src/kernels/ -type f -name "sign-file" -exec cp {} /bin/sign-file \; 
-        #echo "AWS_KMS_KEY_ID:  $AWS_KMS_KEY_ID"
         export KMS_TOKEN=$(echo $AWS_KMS_KEY_ID | cut -c1-32)
         
         # Copy config files from source
